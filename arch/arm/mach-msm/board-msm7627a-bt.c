@@ -29,7 +29,7 @@
 #define CONFIG_ARIMA_BT_DBG_INFO
 //- murphy 2011.11.07
 
-#if defined(CONFIG_BT) && defined(CONFIG_MARIMBA_CORE)
+#if defined(CONFIG_MARIMBA_CORE)
 
 
 static struct bt_vreg_info bt_vregs[] = {

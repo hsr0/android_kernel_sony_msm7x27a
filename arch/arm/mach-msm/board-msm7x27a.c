@@ -93,7 +93,7 @@ static struct sx150x_platform_data sx150x_data[] __initdata = {
 #endif
 
 
-#if defined(CONFIG_BT) && defined(CONFIG_MARIMBA_CORE)
+#if defined(CONFIG_MARIMBA_CORE)
 static struct platform_device msm_wlan_ar6000_pm_device = {
 	.name           = "wlan_ar6000_pm_dev",
 	.id             = -1,
@@ -1085,7 +1085,7 @@ static void __init msm8625_rumi3_init(void)
 
 #define UART1DM_RX_GPIO		45
 
-#if defined(CONFIG_BT) && defined(CONFIG_MARIMBA_CORE)
+#if defined(CONFIG_MARIMBA_CORE)
 static int __init msm7x27a_init_ar6000pm(void)
 {
 	msm_wlan_ar6000_pm_device.dev.platform_data = &ar600x_wlan_power;
@@ -1225,7 +1225,7 @@ static void __init msm7x2x_init(void)
 #if defined(CONFIG_I2C) && defined(CONFIG_GPIO_SX150X) /* 20120507-Jordan */
 	register_i2c_devices();
 #endif
-#if defined(CONFIG_BT) && defined(CONFIG_MARIMBA_CORE)
+#if defined(CONFIG_MARIMBA_CORE)
 	msm7627a_bt_power_init();
 #endif
 	msm7627a_camera_init();
