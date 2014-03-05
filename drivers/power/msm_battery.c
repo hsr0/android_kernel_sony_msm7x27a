@@ -87,9 +87,11 @@ static struct delayed_work protection_ic_work;
 //[Arima Edison] add for trigger early suspend condition++
 #define ONCRPC_CHG_SET_BATTERY_TRIGGER_SUSPEND	16
 #define ONCRPC_CHG_TRIGGER_TELEPHONY	17
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 #define ONCRPC_CHG_SET_POWER_OFF_CHARGE_FLAG 18
 #define ONCRPC_CHG_CHECK_CHARGER_IRQ_STATUS 19
 #define ONCRPC_CHG_TRIGGER_CHARGER_IRQ_HANDLER	20
+#endif
 //[Arima Edison] add for trigger early suspend condition-- 
 #define ONCRPC_CHARGER_API_VERSIONS_PROC	0xffffffff
 
@@ -221,8 +223,18 @@ static struct wake_lock wall_charger_wake_lock;
 /*Edison add for protection IC trigger 20111122 ++*/
 static irqreturn_t msm_protection_set(int irq, void *dev_id);
 static void protection_ic_debounce(struct work_struct *work); 
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 static int msm_batt_get_chg_irq_status(void);
+#endif
 static void msm_batt_update_psy_status(void);
+
+#ifndef CONFIG_BATTERY_MSM_CHARGER_DETECTION
+struct irqaction protection_ic_irq = {
+	.handler = msm_protection_set,
+	.name = "protection ic",
+	.flags = IRQF_SHARED
+};
+#endif
 
 static irqreturn_t msm_protection_set(int irq, void *dev_id)
 {	
@@ -265,6 +277,7 @@ u32	percent;
 		{3485 , 1    },
 		{3400 , 0    },	
 };*/
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 struct voltage2capacity Vbat_Percent_type1 [] =
 {
 		{4171 , 100},		
@@ -294,6 +307,30 @@ struct voltage2capacity Vbat_Percent_type1 [] =
 		{3400 , 0    },	
 };
 #else
+struct voltage2capacity Vbat_Percent_type1 [] =
+{
+		{4171 , 100},		
+		{4114 , 95  },	
+		{4009 , 83  },	
+		{3947 , 74  },	
+		{3907 , 67  },	
+		{3863 , 59  },	
+		{3830 , 56  },	
+		{3813 , 53  },	
+		{3791 , 46  },	
+		{3771 , 33  },	
+		{3754 , 25  },	
+		{3735 , 20  },	
+		{3717 , 17  },	
+		{3681 , 13  },	
+		{3664 , 8    },	
+		{3651 , 6    },	
+		{3635 , 5    },	
+		{3560 , 3    },	
+		{3408 , 1    },
+		{3247 , 0    },	
+};
+#endif
 struct voltage2capacity Vbat_Percent_type2 [] =
 {
 		{4161 , 100},		
@@ -340,7 +377,9 @@ struct rpc_reply_batt_chg_v1 {
 	u32  charging_state_status;
 	u32  mCurrentState;
 	u32  fake_battery_voltage;
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 	u32  invalid_charger_irq_has_triggered;
+#endif
 	/*Edison add ATS & ERROR EVENT 20111122 --*/
 };
 
@@ -408,7 +447,9 @@ struct msm_battery_info {
 	u32  mCurrentState;
 	u8    error_event;
 	u32 fake_battery_voltage;
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 	u32 invalid_charger_irq_has_triggered;
+#endif
 	/*Edison add ATS & ERROR EVENT 20111122 --*/
 
 	struct early_suspend early_suspend;
@@ -433,7 +474,9 @@ static struct msm_battery_info msm_batt_info = {
 	.charging_state_status = 0,
 	.mCurrentState = 0,
 	.fake_battery_voltage = 0,
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 	.invalid_charger_irq_has_triggered =0,
+#endif
 	.error_event = CHARGING_EVENT_NORMAL,
 	/*Edison add ATS & ERROR EVENT 20111122 ++*/
 };
@@ -446,6 +489,7 @@ static char *msm_power_supplied_to[] = {
 	"battery",
 };
 
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 //[Arima Edison] ++
 static int msm_set_power_off_charge_status(uint32_t value)
 {
@@ -470,7 +514,7 @@ static int msm_set_power_off_charge_status(uint32_t value)
 	return rc;
 }
 //[Arima Edison] --
-
+#endif
 
 //[Arima Edison] use to update telephony status ++
 
@@ -522,6 +566,7 @@ static ssize_t msm_batt_set_telephony_status(struct device *dev,
 	return count;
 }
 
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 static int msm_set_charger_irq_handler_rpc(uint32_t value)
 {
 	int rc = 0;
@@ -560,12 +605,17 @@ static ssize_t msm_batt_set_invalid_charger_irq_handler(struct device *dev,
 		
 	return count;
 }
+#endif
 
 static DEVICE_ATTR(set_telephony_status , 0644 , NULL , msm_batt_set_telephony_status);
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 static DEVICE_ATTR(set_invalid_charger_irq_handler, 0644 , NULL , msm_batt_set_invalid_charger_irq_handler);
+#endif
 static struct attribute *msm_battery_attributes[] = {
 	&dev_attr_set_telephony_status.attr,
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 	&dev_attr_set_invalid_charger_irq_handler.attr,
+#endif
 	NULL
 };
 static struct attribute_group msm_battery_attribute_group = {
@@ -633,7 +683,9 @@ static enum power_supply_property msm_batt_power_props[] = {
 	POWER_SUPPLY_PROP_CURRENT_AVG,
 	POWER_SUPPLY_PROP_POWER_AVG,	
 	POWER_SUPPLY_PROP_ERROR_EVENT,
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 	POWER_SUPPLY_PROP_CHARGER_IRQ,
+#endif
 	/*Edison add ATS & ERROR EVENT 20111122 ++*/
 };
 
@@ -641,26 +693,44 @@ static enum power_supply_property msm_batt_power_props[] = {
 #ifdef BATTERY_CAPACITY_REAL
 static u32 msm_batt_capacity_real(u32 current_voltage)
 {
-	static int i, divide_value;
+	static int i;
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
+	static int divide_value;
+#endif
 	static int current_capacity;
 
 	//printk(KERN_NOTICE "Edison in msm_batt_capacity_edison = %d",current_voltage);
 	if (current_voltage >= Vbat_Percent_type1[0].mv)		
 		current_capacity = 100;			
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 	else if(current_voltage <= Vbat_Percent_type1[24].mv)
+#else
+	else if(current_voltage < Vbat_Percent_type1[19].mv)
+#endif
 		current_capacity=  0;			
 	else
 	{
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 		for(i=0; i<24; i++)
+#else
+		for(i=0; i<19; i++)
+#endif
 		{
 			if(current_voltage >= Vbat_Percent_type1[i+1].mv && current_voltage <Vbat_Percent_type1[i].mv)
 			{
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 			   divide_value = Vbat_Percent_type1[i].mv-Vbat_Percent_type1[i+1].mv;	
 			   current_capacity =  Vbat_Percent_type1[i+1].percent 	\
 			   +( (Vbat_Percent_type1[i].percent-Vbat_Percent_type1[i+1].percent) \
 			   *(current_voltage-Vbat_Percent_type1[i+1].mv)+divide_value/2 ) /divide_value;	
 			   
 			   break; // we should leave this for loop if we have got what we needed [Arima Edison]		
+#else
+			   current_capacity =  Vbat_Percent_type1[i+1].percent 	\
+			   +(Vbat_Percent_type1[i].percent-Vbat_Percent_type1[i+1].percent) \
+			   *(current_voltage-Vbat_Percent_type1[i+1].mv)\
+			   /(Vbat_Percent_type1[i].mv-Vbat_Percent_type1[i+1].mv);			
+#endif
 			}
 		}		
 	}
@@ -717,9 +787,11 @@ static int msm_batt_power_get_property(struct power_supply *psy,
 		//printk("msm_batt_info.error_event = %d",msm_batt_info.error_event);
 		WARNING_EVENT_TRIGGER = CHARGING_EVENT_NORMAL;
 		break;
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 	case POWER_SUPPLY_PROP_CHARGER_IRQ:
 		val->intval = msm_batt_get_chg_irq_status();
 		break;
+#endif
 	/*Edison add ATS & ERROR EVENT 20111122 --*/		
 	default:
 		return -EINVAL;
@@ -850,6 +922,7 @@ static int msm_trigger_suspend(uint32_t value)
 
 #define	be32_to_cpu_self(v)	(v = be32_to_cpu(v))
 
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 //[Arima Edison] add a rpc to query chg irq status++
 static int msm_batt_get_chg_irq_status(void)
 {
@@ -883,6 +956,7 @@ static int msm_batt_get_chg_irq_status(void)
 }
 
 //[Arima Edison] add a rpc to query chg irq status--
+#endif
 
 static int msm_batt_get_batt_chg_status(void)
 {
@@ -921,7 +995,9 @@ static int msm_batt_get_batt_chg_status(void)
 		be32_to_cpu_self(v1p->charging_state_status);
 		be32_to_cpu_self(v1p->mCurrentState);
 		be32_to_cpu_self(v1p->fake_battery_voltage);
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 		be32_to_cpu_self(v1p->invalid_charger_irq_has_triggered);
+#endif
 		/*Edison add ATS & ERROR EVENT 20111122 --*/
 	} else {
 		pr_err("%s: No battery/charger data in RPC reply\n", __func__);
@@ -950,7 +1026,9 @@ static void msm_batt_update_psy_status(void)
 	u32    charging_state_status = 0;
 	u32    mCurrentState;
 	u32    fake_battery_voltage;
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 	u32    invalid_charger_irq_has_triggered;
+#endif
 	/*Edison add ATS & ERROR EVENT 20111122 --*/
 	struct	power_supply	*supp;
 
@@ -962,12 +1040,16 @@ static void msm_batt_update_psy_status(void)
 	battery_status = rep_batt_chg.v1.battery_status;
 	battery_level = rep_batt_chg.v1.battery_level;
 	fake_battery_voltage = rep_batt_chg.v1.fake_battery_voltage;
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 	invalid_charger_irq_has_triggered = rep_batt_chg.v1.invalid_charger_irq_has_triggered;
+#endif
 	battery_voltage = rep_batt_chg.v1.battery_voltage;
 	//printk(KERN_EMERG "real battery_voltage = %d fake_battery_voltage %d \n",battery_voltage,fake_battery_voltage);
 	battery_temp = msm_batt_get_temp();
 
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 	printk(KERN_EMERG "invalid_charger_irq_has_triggered=%d",invalid_charger_irq_has_triggered);
+#endif
 
 	/*Edison add ATS & ERROR EVENT 20111122 ++*/
 	charger_voltage = rep_batt_chg.v1.charger_voltage;
@@ -996,8 +1078,12 @@ static void msm_batt_update_psy_status(void)
 	    battery_temp == msm_batt_info.battery_temp && 
 	    charger_current == msm_batt_info.charger_current &&
 	    charging_state_status == msm_batt_info.charging_state_status &&
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 	    mCurrentState == msm_batt_info.mCurrentState &&
 	     invalid_charger_irq_has_triggered == msm_batt_info.invalid_charger_irq_has_triggered   // for power off charge
+#else
+	    mCurrentState == msm_batt_info.mCurrentState
+#endif
 	    ) {
 		/* Got unnecessary event from Modem PMIC VBATT driver.
 		 * Nothing changed in Battery or charger status.
@@ -1041,11 +1127,15 @@ static void msm_batt_update_psy_status(void)
 			msm_batt_info.current_chg_source = AC_CHG;
 			supp = &msm_psy_ac;
 			
-			//wake_lock(&wall_charger_wake_lock);
+#ifndef CONFIG_BATTERY_MSM_CHARGER_DETECTION
+			wake_lock(&wall_charger_wake_lock);
+#endif
 		} else {
 			if (msm_batt_info.current_chg_source & AC_CHG)
 			{
-				//wake_unlock(&wall_charger_wake_lock);
+#ifndef CONFIG_BATTERY_MSM_CHARGER_DETECTION
+				wake_unlock(&wall_charger_wake_lock);
+#endif
 				DBG_LIMIT("BATT: AC Wall charger removed\n");
 			}	
 			else if (msm_batt_info.current_chg_source & USB_CHG)
@@ -1270,12 +1360,14 @@ static void msm_batt_update_psy_status(void)
 	}
 	//Edison add to update charging state if full charged --
 
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
        if(msm_batt_info.invalid_charger_irq_has_triggered!=invalid_charger_irq_has_triggered)
        {
 		msm_batt_info.invalid_charger_irq_has_triggered=invalid_charger_irq_has_triggered;
 		if (!supp)
 			supp = msm_batt_info.current_ps;
        }
+#endif
 
 	if (supp) {		
 		msm_batt_info.current_ps = supp;
@@ -2050,7 +2142,9 @@ static int __devinit msm_batt_probe(struct platform_device *pdev)
 
 	msm_batt_info.voltage_max_design = pdata->voltage_max_design;
 	msm_batt_info.voltage_min_design = pdata->voltage_min_design;
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 	msm_batt_info.voltage_fail_safe  = pdata->voltage_fail_safe;
+#endif
 
 	msm_batt_info.batt_technology = pdata->batt_technology;	
 	
@@ -2140,9 +2234,15 @@ static int __devinit msm_batt_probe(struct platform_device *pdev)
       		//Jordan-20111230 , new function for Qualcomm ICS baseline  
       		pr_info("-- PROTECTION IC INT  --\n");
 		printk(KERN_NOTICE "Edison protection test %d ",irq_set_irq_type(gpio_to_irq(41),IRQF_TRIGGER_FALLING));
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 		rc = request_irq(gpio_to_irq(41),msm_protection_set, IRQF_SHARED,"Protection IC", pdev);
 		if(rc<0)
 			free_irq(gpio_to_irq(41), pdev);
+#else
+		printk(KERN_NOTICE "Edison protection test %d ",setup_irq(gpio_to_irq(41),&protection_ic_irq));
+		enable_irq(gpio_to_irq(41));
+		printk(KERN_NOTICE "Edison protection test %d ",irq_set_irq_wake(gpio_to_irq(41),1));
+#endif
 		//Jordan-20111230 , new function for Qualcomm ICS baseline  
       	}			
 	else
@@ -2152,6 +2252,7 @@ static int __devinit msm_batt_probe(struct platform_device *pdev)
 	}
 /*Edison add for protection IC alarm 20111122 --*/	
 
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 	printk(KERN_NOTICE "%s boot_reason = %d  msm_batt_get_chg_irq_status=%d  \n",__func__,boot_reason,msm_batt_get_chg_irq_status());
 	
 	//[Arima Edison] prevent phoen enter deep sleep while doing power off charge++
@@ -2162,6 +2263,7 @@ static int __devinit msm_batt_probe(struct platform_device *pdev)
 	rc = msm_set_power_off_charge_status((unsigned int)boot_reason);
 	if(rc < 0)
 		printk(KERN_EMERG "set power off charge state fail, rc = %d \n",rc);
+#endif
 	return 0;
 }
 
@@ -2169,8 +2271,10 @@ static int __devexit msm_batt_remove(struct platform_device *pdev)
 {
 	int rc;
 	rc = msm_batt_cleanup();
+#ifdef CONFIG_BATTERY_MSM_CHARGER_DETECTION
 	free_irq(gpio_to_irq(41), pdev);
 	gpio_free(41);
+#endif
 	
 	if (rc < 0) {
 		dev_err(&pdev->dev,

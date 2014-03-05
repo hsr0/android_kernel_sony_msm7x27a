@@ -295,6 +295,10 @@ config BATTERY_MSM
 	help
 	  Say Y to enable support for the battery in Qualcomm MSM.
 
+config BATTERY_MSM_CHARGER_DETECTION
+	bool "MSM battery charger detection"
+	depends on BATTERY_MSM
+
 config BATTERY_MSM8X60
 	tristate "MSM8X60 battery"
 	select PMIC8XXX_BATTALARM
